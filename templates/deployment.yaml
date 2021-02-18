@@ -143,6 +143,8 @@ spec:
         imagePullPolicy: {{ .Values.php.pullPolicy }}
         {{- if .Values.php.envVars }}
         env:
+          - name: APP_URL
+            value: {{ template "grease-monkey.domain" . }}
           - name: DB_DATABASE
             valueFrom:
               secretKeyRef:
