@@ -9,7 +9,7 @@ init:
 # Domain
 domain: "dev.app.greasemonkeysizing.com"
 
-# Email address for signing
+# Email address for certificate signing
 emailAddress: "developers@schierproducts.com"
 
 service:
