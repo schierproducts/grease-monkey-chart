@@ -79,6 +79,8 @@ php:
       value: false
     - name: LOG_CHANNEL
       value: "stack"
+    - name: SCOUT_DRIVER
+      value: null
 
 httpd:
   ## httpd.repository default httpd image
