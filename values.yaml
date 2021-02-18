@@ -6,11 +6,15 @@ init:
   ## init.resources init containers resource requests/limits
   resources: false
 
-# Domain
-domain: "dev.app.greasemonkeysizing.com"
-
-# Email address for certificate signing
-emailAddress: "developers@schierproducts.com"
+filesystem:
+  # if the file system that will be used will be cloud enabled
+  cloud: false
+  # if filesystem.cloud is true, provide the S3 credentials
+  aws:
+    key: "sample"
+    access: "sample"
+    region: "us-east-2"
+    bucket: "sample"
 
 service:
   type: "ExternalName"
@@ -51,6 +55,8 @@ php:
 
   # Default environment variables
   envVars:
+    - name: APP_NAME
+      value: "Grease Monkey"
     - name: APP_ENV
       value: "staging"
     - name: APP_DEBUG
@@ -61,6 +67,18 @@ php:
       value: "localhost"
     - name: PUSHER_APP_ID
       value: "877447"
+    - name: QUEUE_CONNECTION
+      value: "database"
+    - name: MAIL_MAILER
+      value: "mailgun"
+    - name: MAILGUN_DOMAIN
+      value: "schierproducts.com"
+    - name: ENGAGEMENT_LOG_EVENTS
+      value: false
+    - name: ACTIVITY_LOGGER_ENABLED
+      value: false
+    - name: LOG_CHANNEL
+      value: "stack"
 
 httpd:
   ## httpd.repository default httpd image
@@ -147,3 +165,9 @@ keepSecrets: false
 ## replicaCount > 1 will corrupt your database if one is used. Future releases
 ## might enable elastic scaling via galeradb
 replicaCount: 1
+
+# Domain
+domain: "dev.app.greasemonkeysizing.com"
+
+# Email address for certificate signing
+emailAddress: "developers@schierproducts.com"

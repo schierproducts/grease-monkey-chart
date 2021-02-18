@@ -148,8 +148,10 @@ spec:
         imagePullPolicy: {{ .Values.php.pullPolicy }}
         {{- if .Values.php.envVars }}
         env:
+          - name: APP_NAME
+            value: "Grease Monkey"
           - name: APP_URL
-            value: {{ template "grease-monkey.domain" . }}
+            value: https://{{ template "grease-monkey.domain" . }}
           - name: DB_DATABASE
             valueFrom:
               secretKeyRef:
@@ -165,6 +167,31 @@ spec:
               secretKeyRef:
                 name: {{ template "grease-monkey.fullname" . }}
                 key: mysql-user
+          {{- if .Values.filesystem.cloud }}
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: filesystem-key
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: filesystem-access
+          - name: AWS_DEFAULT_REGION
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: filesystem-region
+          - name: AWS_BUCKET
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: filesystem-bucket
+          {{- else }}
+          - name: FILESYSTEM_DRIVER
+            value: public
+          {{- end }}
 {{ toYaml .Values.php.envVars | indent 10 }}
         {{- end }}
         volumeMounts:
