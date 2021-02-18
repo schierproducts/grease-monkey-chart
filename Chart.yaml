@@ -5,6 +5,16 @@ home: https://github.com/schierproducts/grease-monkey-chart
 maintainers:
   - name: dniccum
     email: "doug.niccum@schierproducts.com"
+    url: "https://dniccumdesign.com"
+keywords:
+  - laravel
+  - php
+  - mysql
+  - helm
+sources:
+  - https://github.com/schierproducts/grease-monkey-chart
+  - https://github.com/lead4good/lamp-helm-repository
+icon: ./schier-badge.png
 
 # A chart can be either an 'application' or a 'library' chart.
 #

@@ -11,4 +11,4 @@ $ helm install [name-of-your-app] grease-monkey
 
 ## Credits
 
-This repository is heavily based off of the LAMP Helm chart by `lead4good`. [See it here](https://lead4good.github.io/lamp-helm-repository)
+This repository is heavily based off of the LAMP Helm chart by `lead4good`. [See it here](https://github.com/lead4good/lamp-helm-repository)
