@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ template "grease-monkey.fullname" . }}
   labels:
-    app: {{ template "grease-monkey.name" . }}
+    app: {{ template "grease-monkey.fullname" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
@@ -11,11 +11,16 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ template "grease-monkey.name" . }}
+      app: {{ template "grease-monkey.fullname" . }}
+      chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      heritage: {{ .Release.Service }}
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ template "grease-monkey.name" . }}
+        app: {{ template "grease-monkey.fullname" . }}
+        chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        heritage: {{ .Release.Service }}
         release: {{ .Release.Name }}
     spec:
       initContainers:
