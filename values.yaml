@@ -9,6 +9,9 @@ init:
 # Domain
 domain: "dev.app.greasemonkeysizing.com"
 
+# Email address for signing
+emailAddress: "developers@schierproducts.com"
+
 service:
   type: "ExternalName"
   port: 9000
