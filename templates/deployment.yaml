@@ -1,0 +1,276 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "grease-monkey.fullname" . }}
+  labels:
+    app: {{ template "grease-monkey.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "grease-monkey.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "grease-monkey.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      initContainers:
+      - name: "init-chown-mysql"
+        image: "busybox"
+        command: ["chown", "-R", "999:999", "/tmp/mysqld"]
+        volumeMounts:
+        - name: sockets
+          mountPath: /tmp/mysqld
+          subPath: mysqld
+        resources:
+        {{- if .Values.init.resources }}
+{{ toYaml .Values.init.resources | indent 12 }}
+        {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+        {{- end }}
+      {{- if and .Values.php.persistentSubpaths (or .Values.persistence.hostPath .Values.persistence.enabled)}}
+      - name: "init-chown-data"
+        image: "busybox"
+        command: ["sh", "-c", "chown -R 33:33 /data/web"]
+        volumeMounts:
+        {{- range $subPath := .Values.php.persistentSubpaths }}
+        - name: httpd-data
+          mountPath: /data/web/{{ $subPath }}
+          subPath: {{ $subPath }}
+        {{- end }}
+        - name: httpd-data-nonpersistent
+          mountPath: /data/web
+          subPath: web
+        resources:
+        {{- if .Values.init.resources }}
+{{ toYaml .Values.init.resources | indent 12 }}
+        {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+        {{- end }}
+      - name: "init-db-clone"
+        image: "{{ .Values.mysql.repository }}:{{ .Values.mysql.tag }}"
+        imagePullPolicy: {{ .Values.mysql.imagePullPolicy }}
+        command: ["bash", "/init/init_db_clone.sh"]
+        volumeMounts:
+        {{- if and .Values.php.persistentSubpaths (or .Values.persistence.hostPath .Values.persistence.enabled)}}
+        {{- range $subPath := .Values.php.persistentSubpaths }}
+        - name: httpd-data
+          mountPath: /var/www/html/{{ $subPath }}
+          subPath: {{ $subPath }}
+        {{- end }}
+        - name: httpd-data-nonpersistent
+        {{- else }}
+        - name: httpd-data
+        {{- end }}
+          mountPath: /var/www/html
+          subPath: web
+        - name: httpd-data
+          mountPath: /var/lib/mysql
+          subPath: db
+        - name: init
+          mountPath: /init
+        env:
+        - name: OLD_MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.init.clone.release }}
+              key: mysql-root-password
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "grease-monkey.fullname" . }}
+              key: mysql-root-password
+        resources:
+        {{- if .Values.init.resources }}
+{{ toYaml .Values.init.resources | indent 12 }}
+        {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+        {{- end }}
+      {{- end }}
+      containers:
+      {{- if .Values.php.fpmEnabled }}
+      - name: "httpd"
+        image: "{{ .Values.httpd.repository }}:{{ .Values.httpd.tag }}"
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        {{- if and .Values.php.persistentSubpaths (or .Values.persistence.hostPath .Values.persistence.enabled)}}
+        {{- range $subPath := .Values.php.persistentSubpaths }}
+        - name: httpd-data
+          mountPath: /var/www/html/{{ $subPath }}
+          subPath: {{ $subPath }}
+        {{- end }}
+        - name: httpd-data-nonpersistent
+        {{- else }}
+        - name: httpd-data
+        {{- end }}
+          mountPath: /var/www/html
+          subPath: web
+        {{- if .Values.php.sockets }}
+        - mountPath: /var/run/php
+          name: sockets
+          subPath: php
+        {{- end }}
+        - mountPath: /usr/local/apache2/conf/extra/httpd-vhosts.conf
+          name: httpd-config
+          subPath: httpd-vhosts{{ if .Values.php.sockets }}-socket{{ end }}.conf
+        - mountPath: /usr/local/apache2/conf/httpd.conf
+          name: httpd-config
+          subPath: httpd.conf
+        resources:
+        {{- if .Values.httpd.resources }}
+{{ toYaml .Values.httpd.resources | indent 12 }}
+        {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+        {{- end }}
+      - name: "php"
+        image: "{{ .Values.php.repository }}:{{ .Values.php.tag }}"
+        {{- if not .Values.php.sockets }}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        {{- end }}
+      {{- else }}
+      - name: "httpdphp"
+        image: "{{ .Values.php.repository }}:{{ .Values.php.tag }}"
+        ports:
+        - containerPort: 80
+      {{- end }}
+        imagePullPolicy: {{ .Values.php.pullPolicy }}
+        {{- if .Values.php.envVars }}
+        env:
+          - name: DB_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: mysql-database
+          - name: DB_PASWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: mysql-password
+          - name: DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "grease-monkey.fullname" . }}
+                key: mysql-user
+{{ toYaml .Values.php.envVars | indent 10 }}
+        {{- end }}
+        volumeMounts:
+        {{- if and .Values.php.persistentSubpaths (or .Values.persistence.hostPath .Values.persistence.enabled)}}
+        {{- range $subPath := .Values.php.persistentSubpaths }}
+        - name: httpd-data
+          mountPath: /var/www/html/{{ $subPath }}
+          subPath: {{ $subPath }}
+        {{- end }}
+        - name: httpd-data-nonpersistent
+        {{- else }}
+        - name: httpd-data
+        {{- end }}
+          mountPath: /var/www/html
+          subPath: web
+        - name: httpd-data
+          mountPath: /var/www/mysql
+          subPath: mysql
+        {{- if and .Values.php.fpmEnabled .Values.php.sockets }}
+        - mountPath: /var/run/php
+          name: sockets
+          subPath: php
+        - mountPath: /usr/local/etc/php-fpm.d/zz-docker.conf
+          name: configmap-php
+          subPath: zz-docker.conf
+        {{- end }}
+        {{- if .Values.mysql.sockets }}
+        - mountPath: /var/run/mysqld
+          name: sockets
+          subPath: mysqld
+        {{- end }}
+        {{- if or .Values.php.ini .Values.mysql.sockets }}
+        - name: configmap-php
+          mountPath: /usr/local/etc/php/conf.d/additional.ini
+          subPath: additional.ini
+        {{- end }}
+        resources:
+        {{- if .Values.php.resources }}
+{{ toYaml .Values.php.resources | indent 12 }}
+        {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+        {{- end }}
+      {{- if .Values.mysql.rootPassword }}
+      - name: "mysql"
+        image: "{{ .Values.mysql.repository }}:{{ .Values.mysql.tag }}"
+        imagePullPolicy: {{ .Values.mysql.imagePullPolicy }}
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "grease-monkey.fullname" . }}
+              key: mysql-root-password
+        {{- if and .Values.mysql.user .Values.mysql.password }}
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "grease-monkey.fullname" . }}
+              key: mysql-user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "grease-monkey.fullname" . }}
+              key: mysql-password
+        {{- if .Values.mysql.database }}
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "grease-monkey.fullname" . }}
+              key: mysql-database
+        {{- end }}
+        {{- end }}
+        volumeMounts:
+        - name: httpd-data
+          mountPath: /var/lib/mysql
+          subPath: db
+        {{- if .Values.mysql.sockets }}
+        - mountPath: /var/run/mysqld
+          name: sockets
+          subPath: mysqld
+        {{- end }}
+        resources:
+        {{- if .Values.mysql.resources }}
+{{ toYaml .Values.mysql.resources | indent 12 }}
+        {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+        {{- end }}
+      {{- end }}
+      
+      volumes:
+      {{- if and .Values.php.persistentSubpaths (or .Values.persistence.hostPath .Values.persistence.enabled)}}
+      - name: httpd-data-nonpersistent
+        emptyDir: {}
+      {{- end }}
+      - name: httpd-data
+      {{- if .Values.persistence.hostPath }}
+        hostPath:
+          path: {{ .Values.persistence.hostPath }}
+        {{- else }}{{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ template "grease-monkey.fullname" . }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
+      {{- if or .Values.mysql.sockets .Values.php.sockets }}
+      - name: sockets
+        emptyDir: {}
+      {{- end }}
+      {{- if or .Values.mysql.sockets ( or ( and .Values.php.fpmEnabled .Values.php.sockets) .Values.php.ini ) }}
+      - configMap: {name: {{template "grease-monkey.fullname" .}}-php }
+        name: configmap-php
+      {{- end }}
+      {{- if .Values.php.fpmEnabled }}
+      - configMap: {name: {{template "grease-monkey.fullname" .}}-httpd }
+        name: httpd-config
+      {{- end }}

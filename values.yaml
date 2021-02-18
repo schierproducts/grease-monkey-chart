@@ -1,0 +1,146 @@
+# Default values for grease-monkey-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+init:
+  ## init.resources init containers resource requests/limits
+  resources: false
+
+# Domain
+domain: "dev.app.greasemonkeysizing.com"
+
+service:
+  type: "ExternalName"
+  port: 9000
+
+php:
+  ## php.repository default php image
+  repository: "registry.digitalocean.com/schier-products/grease-monkey"
+
+  ## php.tag default php image tag
+  tag: "latest"
+
+  ## php.pullPolicy Image pull policy
+  pullPolicy: Always
+
+  ## php.fpmEnabled Enables docker FPM repository, be sure to disable if working with
+  ## a custom repository based on the apache tag
+  fpmEnabled: false
+
+  ## php.sockets If FPM is enabled, enables communication between HTTPD and PHP via
+  ## sockets instead of TCP
+  sockets: true
+
+  ## php.resources PHP container resource requests/limits
+  resources: false
+  #  requests:
+  #    cpu: 1m
+  #    memory: 1Mi
+
+  ## php.persistentSubpaths instead of enabling persistence for the whole webroot,
+  ## only subpaths of webroot can be enabled for persistence. Have a look at the
+  ## github.com/kubernetes/charts/stable/lamp/examples/nextcloud.yaml to see how it works
+  persistentSubpaths: false
+
+  # persistentSubpaths:
+  # - subPath1
+  # - subPath2
+
+  # Default environment variables
+  envVars:
+    - name: APP_ENV
+      value: "staging"
+    - name: APP_DEBUG
+      value: "true"
+    - name: DB_PORT
+      value: "3306"
+    - name: DB_HOST
+      value: "localhost"
+    - name: PUSHER_APP_ID
+      value: "877447"
+
+httpd:
+  ## httpd.repository default httpd image
+  repository: "httpd"
+
+  ## httpd.tag default httpd image tag
+  tag: "2.4-alpine"
+
+  ## httpd.resources HTTPD container resource requests/limits
+  resources: false
+  #  requests:
+  #    cpu: 1m
+  #    memory: 1Mi
+
+mysql:
+  repository: "mysql"
+
+  ## Sets other configuration
+  user: "admin"
+  database: "greasemonkey"
+
+  ## mysql.tag MySQL image tag
+  tag: "8.0.23"
+
+  ## mysql.imagePullPolicy Image pull policy
+  imagePullPolicy: Always
+
+  ## mysql.sockets Enables communication between MySQL and PHP via sockets instead of TCP
+  sockets: true
+
+  ## mysql.resources Resource requests/limits
+  resources: false
+  #  requests:
+  #    cpu: 1m
+  #    memory: 1Mi
+
+resources:
+  requests:
+    ## resources.requests.cpu CPU resource requests
+    cpu: 1m
+
+    ## resources.requests.memory Memory resource requests
+    memory: 1Mi
+
+  # limits:
+  ## resources.limits.cpu CPU resource limits
+  #   cpu: 1000m
+
+  ## resources.limits.memory Memory resource limits
+  #   memory: 1024Mi
+
+### STORAGE ###
+
+persistence:
+  ## persistence.enabled Enables persistent volume - PV provisioner support necessary
+  enabled: false
+
+  ## persistence.keep Keep persistent volume after helm delete
+  keep: false
+
+  ## persistence.accessMode PVC Access Mode
+  accessMode: ReadWriteOnce
+
+  ## persistence.size PVC Size
+  size: 5Gi
+
+  ## persistence.storageClass PVC Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+
+  ## persistence.hostPath if specified, used as persistent storage instead of PVC
+  # hostPath: /path/to/volume
+
+### OTHER ###
+
+## keepSecrets Keep secrets after helm delete
+keepSecrets: false
+
+## replicaCount > 1 will corrupt your database if one is used. Future releases
+## might enable elastic scaling via galeradb
+replicaCount: 1

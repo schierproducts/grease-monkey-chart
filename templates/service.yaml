@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grease-monkey.fullname" . }}
+  namespace: default
+  labels:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  externalName: {{ include "grease-monkey.name" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 80
+      protocol: TCP
+      name: httpd
+  selector:
+    app: {{ template "grease-monkey.name" . }}
+    release: {{ .Release.Name }}
